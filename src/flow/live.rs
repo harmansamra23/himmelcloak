@@ -382,7 +382,7 @@ async fn live_driver_completes_a_login_and_asks_again_after_a_wrong_password() {
 #[tokio::test]
 #[ignore = "requires a live Keycloak server and test CA"]
 #[cfg(all(feature = "password", feature = "totp"))]
-async fn live_direct_grant_totp_accepts_fixture_users() {
+async fn live_direct_grant_totp_accepts_and_rejects_fixture_users() {
     let config = config_for_client("himmelcloak-test-client");
     let app = PublicClientApplication::with_config(config).await.unwrap();
 
@@ -396,6 +396,22 @@ async fn live_direct_grant_totp_accepts_fixture_users() {
             .as_secs();
         let code =
             totp(secret, unix_time, 30, algorithm, digits).expect("valid fixture TOTP settings");
+
+        let wrong_code = format!(
+            "{:0width$}",
+            (code.parse::<u32>().expect("numeric OTP code") + 1) % 10_u32.pow(digits),
+            width = digits as usize
+        );
+
+        trace(&format!(
+            "reject an invalid {digits}-digit TOTP code for {username}"
+        ));
+        assert_eq!(
+            app.acquire_token_by_password(username, PASSWORD, Some(wrong_code.as_str()))
+                .await
+                .err(),
+            Some(Error::AuthenticationRejected)
+        );
 
         trace(&format!(
             "send {username}'s current TOTP code through the password grant"
