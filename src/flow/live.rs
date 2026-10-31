@@ -73,7 +73,6 @@ pub(super) fn config() -> Config {
     config_for_client(BROWSER_ONLY_CLIENT)
 }
 
-
 /// Start a login with `flow` and return the login page's form.
 async fn login_form(
     app: &PublicClientApplication,
